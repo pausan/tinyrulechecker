@@ -124,11 +124,11 @@ expr      -> '(' expr ')'
           -> statement boolop expr
 
 statement -> id '.' id '(' value ')'
-          -> 'not' statement
+          -> '!' statement
 
 value -> int | float | string
 
-boolop -> 'and' | 'or'
+boolop -> '&&' | '||'
 ```
 
 Strings can be enclosed in single or double quotes.
