@@ -143,8 +143,8 @@ Benchmark performed on an Intel(R) Core(TM) i7-8565U CPU @ 1.80GHz (launched Q3
 `myfloat.eq(1.9999999) || myint.eq(32)`
 
 **Results**
-- Less than 1 millisecond to parsed and evaluate 1000 times (0.96 ms)
-- 1.24 million evaluations per second (fully parsing and evaluating each time, no precompilation step)
+- Less than 0.350 milliseconds to parse and evaluate 1000 times (0.334 ms)
+- 3.386 million evaluations per second (fully parsing and evaluating each time, no precompilation step)
 
 ## License
 

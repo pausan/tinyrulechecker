@@ -4,7 +4,9 @@
 // -----------------------------------------------------------------------------
 #include <stdio.h>
 #include <string>
+#include <cstring>
 #include <stdint.h>
+#include <charconv>
 #include <map>
 #include "tinyrulechecker.h"
 
@@ -303,7 +305,7 @@ bool TinyRuleChecker::_parseStatement(TokenList &tokens, TokenIt &it, bool &resu
     return false;
   }
 
-  std::string id = it->value;
+  std::string_view id = it->value;
   it++;
 
   // then expecting a dot
@@ -319,7 +321,7 @@ bool TinyRuleChecker::_parseStatement(TokenList &tokens, TokenIt &it, bool &resu
     return false;
   }
 
-  std::string method = it->value;
+  std::string_view method = it->value;
   it++;
 
   // then a '('
@@ -343,12 +345,13 @@ bool TinyRuleChecker::_parseStatement(TokenList &tokens, TokenIt &it, bool &resu
   it++;
 
   // now we can evaluate the statement
-  if (_variables.find(id) == _variables.end()) {
-    printf("variable '%s' not found\n", id.c_str());
+  auto itVariable = _variables.find(id);
+  if (itVariable == _variables.end()) {
+    printf("variable '%s' not found\n", std::string(id).c_str());
     return false;
   }
 
-  VarValue &var = _variables[id];
+  VarValue &var = itVariable->second;
   return _evalStatement(var, method, value, result);
 }
 
@@ -362,19 +365,27 @@ bool TinyRuleChecker::_parseValue(TokenList &tokens, TokenIt &it, VarValue &v) {
 
   if (it->type == TK_INT) {
     v.type = V_TYPE_INT;
-    v.intval = atoi(it->value.c_str());
+    auto [p, ec] = std::from_chars(it->value.data(), it->value.data() + it->value.size(), v.intval);
+    if (ec != std::errc()) {
+      printf("invalid integer value\n");
+      return false;
+    }
     it++;
     return true;
   }
   else if (it->type == TK_FLOAT) {
     v.type = V_TYPE_FLOAT;
-    v.floatval = atof(it->value.c_str());
+    auto [p, ec] = std::from_chars(it->value.data(), it->value.data() + it->value.size(), v.floatval);
+    if (ec != std::errc()) {
+      printf("invalid float value\n");
+      return false;
+    }
     it++;
     return true;
   }
   else if (it->type == TK_STRING) {
     v.type = V_TYPE_STRING;
-    v.strval = it->value; // FIXME! remove quotes & escape sequences
+    v.strval = it->value;
     it++;
     return true;
   }
@@ -388,7 +399,7 @@ bool TinyRuleChecker::_parseValue(TokenList &tokens, TokenIt &it, VarValue &v) {
 // -----------------------------------------------------------------------------
 bool TinyRuleChecker::_evalStatement(
   const VarValue &v1,
-  const std::string &method,
+  const std::string_view &method,
   const VarValue &v2,
   bool &result
 ) {
@@ -399,7 +410,7 @@ bool TinyRuleChecker::_evalStatement(
 
   std::map<std::string, MethodOperator>::iterator mit = _methods.find(method);
   if (mit == _methods.end()) {
-    printf("unknown method '%s'\n", method.c_str());
+    printf("unknown method '%s'\n", std::string(method).c_str());
     return false;
   }
 
@@ -414,6 +425,9 @@ bool TinyRuleChecker::_evalStatement(
 TinyRuleChecker::TokenList TinyRuleChecker::tokenize(const char *expr) {
   TokenList tokens;
   Token t;
+
+  // let's start with some room for tokens
+  tokens.reserve(16386);
 
   const char *myexpr = expr;
   while ((myexpr = _nextToken(myexpr, t)) != NULL) {
@@ -434,7 +448,7 @@ TinyRuleChecker::TokenList TinyRuleChecker::tokenize(const char *expr) {
 // -----------------------------------------------------------------------------
 const char *TinyRuleChecker::_nextToken(const char *expr, Token &t) {
   t.type = TK_UNKNOWN;
-  t.value = "";
+  t.value = std::string_view{};
   t.offset = 0;
 
   if (expr == NULL || *expr == '\0') {
@@ -445,20 +459,25 @@ const char *TinyRuleChecker::_nextToken(const char *expr, Token &t) {
     expr++;
   }
 
+  const char *start_expr = expr;
   if (isalpha(*expr) || *expr == '_') {
     t.type = TK_ID;
     while (isalnum(*expr) || *expr == '_') {
-      t.value += *expr;
       expr++;
     }
+    t.value = std::string_view(start_expr, expr - start_expr);
   }
   else if (*expr == '"') {
     t.type = TK_STRING;
     expr++;
+
+    start_expr = expr;
     while (*expr && *expr != '"') {
-      t.value += *expr;
       expr++;
     }
+    // FIXME! handle escape sequences
+    t.value = std::string_view(start_expr, expr - start_expr);
+
     if (*expr == '"') {
       expr++;
     }
@@ -466,10 +485,14 @@ const char *TinyRuleChecker::_nextToken(const char *expr, Token &t) {
   else if (*expr == '\'') {
     t.type = TK_STRING;
     expr++;
+
+    start_expr = expr;
     while (*expr && *expr != '\'') {
-      t.value += *expr;
       expr++;
     }
+    // FIXME! handle escape sequences
+    t.value = std::string_view(start_expr, expr - start_expr);
+
     if (*expr == '\'') {
       expr++;
     }
@@ -477,53 +500,51 @@ const char *TinyRuleChecker::_nextToken(const char *expr, Token &t) {
   else if (isdigit(*expr)) {
     t.type = TK_INT;
     while (isdigit(*expr)) {
-      t.value += *expr;
       expr++;
     }
 
     if (*expr == '.') {
       t.type = TK_FLOAT;
-      t.value += *expr;
       expr++;
       while (isdigit(*expr)) {
-        t.value += *expr;
         expr++;
       }
     }
+    t.value = std::string_view(start_expr, expr - start_expr);
   }
   else if (*expr == '(') {
     t.type = TK_LPAR;
-    t.value = "(";
+    t.value = std::string_view{"("};
     expr++;
   }
   else if (*expr == ')') {
     t.type = TK_RPAR;
-    t.value = ")";
+    t.value = std::string_view{")"};
     expr++;
   }
   else if (*expr == '&' && *(expr+1) == '&') {
     t.type = TK_AND;
-    t.value = "&&";
+    t.value = std::string_view{"&&"};
     expr+=2;
   }
   else if (*expr == '|' && *(expr+1) == '|') {
     t.type = TK_OR;
-    t.value = "||";
+    t.value = std::string_view{"||"};
     expr+=2;
   }
   else if (*expr == '!') {
     t.type = TK_NOT;
-    t.value = "!";
+    t.value = std::string_view{"!"};
     expr++;
   }
   else if (*expr == '.') {
     t.type = TK_DOT;
-    t.value = ".";
+    t.value = std::string_view{"."};
     expr++;
   }
   else {
     t.type = TK_UNKNOWN;
-    t.value = *expr;
+    t.value = std::string_view{expr, 1};
     expr++;
   }
 

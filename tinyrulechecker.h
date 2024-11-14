@@ -28,7 +28,6 @@ class TinyRuleChecker {
 
     typedef bool (*MethodOperator)(const VarValue &v1, const VarValue &v2, bool &result);
 
-
     TinyRuleChecker(bool defaultMethods = true);
     ~TinyRuleChecker();
 
@@ -58,23 +57,23 @@ class TinyRuleChecker {
     } TokenType;
 
     typedef struct {
-      int         offset; // instead of line, col, just the offset
-      TokenType   type;
-      std::string value;
+      int              offset; // instead of line, col, just the offset
+      TokenType        type;
+      std::string_view value;
     } Token;
 
     typedef std::vector<Token> TokenList;
     typedef TokenList::const_iterator TokenIt;
 
-    std::map<std::string, VarValue> _variables;
-    std::map<std::string, MethodOperator> _methods;
+    std::map<std::string, VarValue, std::less<>> _variables;
+    std::map<std::string, MethodOperator, std::less<>> _methods;
     TokenList tokenize(const char *expr);
     const char *_nextToken(const char *expr, Token &t);
 
     bool _parseStatement(TokenList &tokens, TokenIt &it, bool &result);
     bool _parseExpr(TokenList &tokens, TokenIt &it, bool &result);
     bool _parseValue(TokenList &tokens, TokenIt &it, VarValue &v);
-    bool _evalStatement(const VarValue &v1, const std::string &method, const VarValue &v2, bool &result);
+    bool _evalStatement(const VarValue &v1, const std::string_view &method, const VarValue &v2, bool &result);
 };
 
 

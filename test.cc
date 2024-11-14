@@ -79,7 +79,7 @@ bool benchmark() {
   // test performance
   std::chrono::time_point<std::chrono::system_clock> start, end;
   start = std::chrono::system_clock::now();
-  uint32_t iterations = 1*1000*1000;
+  uint32_t iterations = 10*1000*1000;
   for (uint32_t i = 0; i < iterations; i++) {
     ASSERT_EXPR("myfloat.eq(1.9999999) || myint.eq(32)", false);
   }
@@ -101,6 +101,15 @@ bool benchmark() {
 
 
 int main() {
+  bool testPassed = test_all();
+  if (testPassed) {
+    printf ("Tests PASS!\n");
+  }
+  else {
+    printf ("One or more tests FAILED!\n");
+  }
+
+  printf ("Running benchmark...\n");
   benchmark();
-  return test_all() ? 0 : -1;
+  return testPassed;
 }
