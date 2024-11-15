@@ -82,18 +82,22 @@ int main () {
   checker.setVarFloat("myfloat", 10.5);
   checker.setVarString("mystring", "hellohello");
 
-  checker.setMethod("isDoubleOf", [](const TinyRuleChecker::VarValue &v1, const TinyRuleChecker::VarValue &v2, bool &result) {
+  checker.setMethod("isDoubleOf", [](
+    const TinyRuleChecker::VarValue &v1,
+    const TinyRuleChecker::VarValue &v2,
+    TinyRuleChecker::EvalResult &eval
+  ) {
     if (v1.type == TinyRuleChecker::V_TYPE_INT) {
-      result = v1.intval == 2*v2.intval;
+      eval.result = v1.intval == 2*v2.intval;
     }
     else if (v1.type == TinyRuleChecker::V_TYPE_FLOAT) {
-      result = v1.floatval == 2*v2.floatval;
+      eval.result = v1.floatval == 2*v2.floatval;
     }
     else if (v1.type == TinyRuleChecker::V_TYPE_STRING) {
-      result = v1.strval == (v2.strval + v2.strval);
+      eval.result = v1.strval == (v2.strval + v2.strval);
     }
     else {
-      std::cout << "unsupported operation 'eq' with type" << v1.type << std::endl;
+      eval.error = "unsupported operation 'isDoubleOf' with type '" + std::string(1, v1.type) + "'";
       return false;
     }
     return true;
@@ -101,15 +105,16 @@ int main () {
 
 
   // Add a rule
-  bool result;
-  if (checker.eval("myint.isDoubleOf(5) || mystring.isDoubleOf(\"hello\")", result)) {
-    std::cout << "Result is" << result << std::endl;
+  auto eval = checker.eval("myint.isDoubleOf(5) || mystring.isDoubleOf(\"hello\")");
+  if (eval.error.empty()) {
+    std::cout << "Result is: " << (eval.result ? "true" : "false") << std::endl;
   } else {
-    std::cout << "Error evaluating expression" << std::endl;
+    std::cout << "Error evaluating expression: " << eval.error << std::endl;
   }
   return 0;
 }
 ```
+
 ## X-Ray Profiling
 
 Profile with:
