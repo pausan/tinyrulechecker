@@ -129,11 +129,12 @@ bool benchmark(int npasses, int niterations) {
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = end-start;
     printf(
-      "Pass %d: %.3f M ops/sec  (%d in %.3f seconds)\n",
+      "Pass %d: %.3f M ops/sec  (%d in %.3f seconds; 1 in %.3f nanoseconds)\n",
       n+1,
       ((float)niterations / 1e6) / elapsed_seconds.count(),
       niterations,
-      elapsed_seconds.count()
+      elapsed_seconds.count(),
+      elapsed_seconds.count() / ((float)niterations / 1e9)
     );
   }
 
@@ -148,7 +149,7 @@ bool benchmark(int npasses, int niterations) {
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = end-start;
     printf(
-      "Pass %d: %d ops in %.3f ms\n",
+      "Pass %d: %d ops in %.3f ms (real)\n",
       n,
       thousand,
       ((float)thousand)*elapsed_seconds.count()
@@ -158,7 +159,7 @@ bool benchmark(int npasses, int niterations) {
 }
 
 int main() {
-  //TinyRuleChecker::__generateLookupTable(); return -1;
+  // TinyRuleChecker::__generateLookupTable(); return -1;
 
   bool testPassed = test_all();
   printf (testPassed ? "Tests PASS!\n" : "One or more tests FAILED!\n");

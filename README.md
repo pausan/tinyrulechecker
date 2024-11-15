@@ -157,10 +157,13 @@ Benchmark performed on an Intel(R) Core(TM) i7-8565U CPU @ 1.80GHz (launched Q3
 `myfloat.eq(1.9999999) || myint.eq(32)`
 
 **Results**
-- 0.253ns per string evaluation
-- 253 microseconds to parse and evaluate a string 1000 times (0.253 ms)
-- 3.929 million evaluations per second (fully parsing and evaluating each time,
-  no precompilation step)
+
+- **5.529 million evaluations per second**
+- **1000 evaluations in 0.180 ms**
+- **1 evaluation in 180 ns**
+
+Please note that the full string is parsed and evaluated fully every time,
+no cache, no pre-compilation step.
 
 ## License
 

@@ -14,15 +14,20 @@
 // TinyRuleChecker constructor
 // -----------------------------------------------------------------------------
 TinyRuleChecker::TinyRuleChecker(bool defaultMethods) {
-  if (defaultMethods)
+  clearVars();
+  clearMethods();
+
+  if (defaultMethods) {
     initMethods();
+  }
 }
 
 // -----------------------------------------------------------------------------
 // TinyRuleChecker destructor
 // -----------------------------------------------------------------------------
 TinyRuleChecker::~TinyRuleChecker() {
-  // do nothing
+  // free variables and methods
+  clearVars();
 }
 
 // -----------------------------------------------------------------------------
@@ -39,7 +44,7 @@ void TinyRuleChecker::setVarInt(const char *name, int32_t value) {
   VarValue v;
   v.type = V_TYPE_INT;
   v.intval = value;
-  _variables[name] = v;
+  _variables.set(name, v);
 }
 
 // -----------------------------------------------------------------------------
@@ -49,7 +54,7 @@ void TinyRuleChecker::setVarFloat(const char *name, float value) {
   VarValue v;
   v.type = V_TYPE_FLOAT;
   v.floatval = value;
-  _variables[name] = v;
+  _variables.set(name, v);
 }
 
 // -----------------------------------------------------------------------------
@@ -59,7 +64,7 @@ void TinyRuleChecker::setVarString(const char *name, const char *value) {
   VarValue v;
   v.type = V_TYPE_STRING;
   v.strval = value;
-  _variables[name] = v;
+  _variables.set(name, v);
 }
 
 // -----------------------------------------------------------------------------
@@ -73,7 +78,7 @@ void TinyRuleChecker::clearMethods() {
 // setMethod
 // -----------------------------------------------------------------------------
 void TinyRuleChecker::setMethod(const char *name, TinyRuleChecker::MethodOperator method) {
-  _methods[name] = method;
+  _methods.set(name, method);
 }
 
 // -----------------------------------------------------------------------------
@@ -82,7 +87,7 @@ void TinyRuleChecker::setMethod(const char *name, TinyRuleChecker::MethodOperato
 // Initialize all standard methods
 // -----------------------------------------------------------------------------
 void TinyRuleChecker::initMethods() {
-  _methods["eq"] = [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
+  setMethod("eq", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
     if (v1.type == V_TYPE_INT) {
       eval.result = v1.intval == v2.intval;
     }
@@ -97,9 +102,9 @@ void TinyRuleChecker::initMethods() {
       return false;
     }
     return true;
-  };
+  });
 
-  _methods["neq"] = [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
+  setMethod("neq", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
     if (v1.type == V_TYPE_INT) {
       eval.result = v1.intval != v2.intval;
     }
@@ -114,9 +119,9 @@ void TinyRuleChecker::initMethods() {
       return false;
     }
     return true;
-  };
+  });
 
-  _methods["gt"] = [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
+  setMethod("gt", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
     if (v1.type == V_TYPE_INT) {
       eval.result = v1.intval > v2.intval;
     }
@@ -128,9 +133,9 @@ void TinyRuleChecker::initMethods() {
       return false;
     }
     return true;
-  };
+  });
 
-  _methods["gte"] = [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
+  setMethod("gte", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
     if (v1.type == V_TYPE_INT) {
       eval.result = v1.intval >= v2.intval;
     }
@@ -142,9 +147,9 @@ void TinyRuleChecker::initMethods() {
       return false;
     }
     return true;
-  };
+  });
 
-  _methods["lt"] = [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
+  setMethod("lt", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
     if (v1.type == V_TYPE_INT) {
       eval.result = v1.intval < v2.intval;
     }
@@ -156,9 +161,9 @@ void TinyRuleChecker::initMethods() {
       return false;
     }
     return true;
-  };
+  });
 
-  _methods["lte"] = [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
+  setMethod("lte", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
     if (v1.type == V_TYPE_INT) {
       eval.result = v1.intval <= v2.intval;
     }
@@ -170,9 +175,9 @@ void TinyRuleChecker::initMethods() {
       return false;
     }
     return true;
-  };
+  });
 
-  _methods["contains"] = [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
+  setMethod("contains", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
     if (v1.type == V_TYPE_STRING) {
       eval.result = v1.strval.find(v2.strval) != std::string::npos;
     }
@@ -181,9 +186,9 @@ void TinyRuleChecker::initMethods() {
       return false;
     }
     return true;
-  };
+  });
 
-  _methods["in"] = [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
+  setMethod("in", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
     if (v2.type == V_TYPE_STRING) {
       eval.result = v2.strval.find(v1.strval) != std::string::npos;
     }
@@ -192,7 +197,7 @@ void TinyRuleChecker::initMethods() {
       return false;
     }
     return true;
-  };
+  });
 }
 
 // -----------------------------------------------------------------------------
@@ -265,27 +270,36 @@ bool TinyRuleChecker::_parseExpr(ParseState &ps) {
   // we might just want to return to higher level, e.g still ")..." to be
   // processed)
   _peekToken(ps.next, ps.token);
-  if (ps.token.type == TK_AND) {
-    // consume AND
-    ps.next = _nextToken(ps.next, ps.token);
+  switch(ps.token.type) {
+    case TK_AND:
+      {
+        // consume AND
+        ps.next = _nextToken(ps.next, ps.token);
 
-    bool result = ps.result;
-    if (!_parseExpr(ps))
-      return false;
+        bool result = ps.result;
+        if (!_parseExpr(ps))
+          return false;
 
-    ps.result &= result;
-    return true;
-  }
-  else if (ps.token.type == TK_OR) {
-    // consume OR
-    ps.next = _nextToken(ps.next, ps.token);
+        ps.result &= result;
+        return true;
+      }
+      break;
 
-    bool result = ps.result;
-    if (!_parseExpr(ps))
-      return false;
+    case TK_OR:
+      {
+        // consume OR
+        ps.next = _nextToken(ps.next, ps.token);
 
-    ps.result |= result;
-    return true;
+        bool result = ps.result;
+        if (!_parseExpr(ps))
+          return false;
+
+        ps.result |= result;
+      }
+      return true;
+    default:
+      // nothing else to manage on purpose
+      break;
   }
 
   // let's allow high-level function to continue processing if needed
@@ -363,14 +377,12 @@ TinyRuleChecker::_parseStatement(ParseState &ps) {
   }
 
   // evaluate the statement inline
-  auto itVariable = _variables.find(id);
-  if (itVariable == _variables.end()) {
+  const VarValue *pVar = _variables.get(id);
+  if (pVar == NULL) {
     ps.error = "variable '" + std::string(id) + "' not found";
     return false;
   }
-
-  VarValue &var = itVariable->second;
-  return _evalStatement(ps, var, method, value);
+  return _evalStatement(ps, *pVar, method, value);
 }
 
 // -----------------------------------------------------------------------------
@@ -473,14 +485,14 @@ bool TinyRuleChecker::_evalStatement(
     return false;
   }
 
-  auto mit = _methods.find(method);
-  if (mit == _methods.end()) {
+  const MethodOperator *pMethod = _methods.get(method);
+  if (pMethod == NULL) {
     ps.error = "unknown method '" + std::string(method) + "'";
     return false;
   }
 
   EvalResult evalResult;
-  if (!mit->second(v1, v2, evalResult)) {
+  if (!(*pMethod)(v1, v2, evalResult)) {
     ps.error = evalResult.error;
     return false;
   }
@@ -509,6 +521,7 @@ void TinyRuleChecker::__generateLookupTable() {
   printf ("static const char _TOKEN_LOOKUP_TABLE[256] = {\n  ");
   for (int i = 0; i < 256; i++) {
     if (i == 0) printf("'%c'", TK_EOF);
+    else if (isspace(i)) printf("'%c'", TK_SPACE);
     else if (isalpha(i) || i == '_') printf("'%c'", TK_ID);
     else if (i == '"' || i == '\'') printf("'%c'", TK_RAW_STRING);
     else if (isdigit(i) || i == '-'  || i == '+') printf("'%c'", TK_INT);
@@ -520,25 +533,64 @@ void TinyRuleChecker::__generateLookupTable() {
     else if (i == '!') printf("'%c'", TK_NOT);
     else if (i == '.') printf("'%c'", TK_DOT);
     else printf("'%c'", TK_UNKNOWN);
-    if (i < 255) printf(",");
 
+    if (i < 255) printf(",");
+    if (i % 16 == 15) printf("\n  ");
+  }
+  printf ("};\n");
+
+  // alphanumeric and '_' accepted as second character onwards
+  // for an identifier
+  printf ("static const char _TOKEN_LOOKUP_ID[256] = {\n  ");
+  for (int i = 0; i < 256; i++) {
+    if (i == 0) printf("'%c'", TK_EOF);
+    else if (isalnum(i) || i == '_') printf("'%c'", TK_ID);
+    else if (isspace(i)) printf("'%c'", ' ');
+    else printf("'%c'", TK_UNKNOWN);
+
+    if (i < 255) printf(",");
     if (i % 16 == 15) printf("\n  ");
   }
   printf ("};\n");
 }
 
 // -----------------------------------------------------------------------------
-// 8-bit lookup table for token types where the index is the character
+// lookup table for token types where the index is the character
+// NOTE: generated with __generateLookupTable()
 // -----------------------------------------------------------------------------
 static const char _TOKEN_LOOKUP_TABLE[256] = {
-  'e','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
+  'e','u','u','u','u','u','u','u','u',' ',' ',' ',' ',' ','u','u',
   'u','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
-  'u','!','s','u','u','u','&','s','(',')','u','n','u','n','.','u',
+  ' ','!','s','u','u','u','&','s','(',')','u','n','u','n','.','u',
   'n','n','n','n','n','n','n','n','n','n','u','u','u','u','u','u',
   'u','i','i','i','i','i','i','i','i','i','i','i','i','i','i','i',
   'i','i','i','i','i','i','i','i','i','i','i','u','u','u','u','i',
   'u','i','i','i','i','i','i','i','i','i','i','i','i','i','i','i',
   'i','i','i','i','i','i','i','i','i','i','i','u','|','u','u','u',
+  'u','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
+  'u','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
+  'u','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
+  'u','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
+  'u','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
+  'u','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
+  'u','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
+  'u','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u'
+};
+
+// -----------------------------------------------------------------------------
+// lookup table with characters accepted as identifier after first character
+// (alphanum + '_')
+// NOTE: generated with __generateLookupTable()
+// -----------------------------------------------------------------------------
+static const char _TOKEN_LOOKUP_ID[256] = {
+  'e','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
+  'u','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
+  'u','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
+  'i','i','i','i','i','i','i','i','i','i','u','u','u','u','u','u',
+  'u','i','i','i','i','i','i','i','i','i','i','i','i','i','i','i',
+  'i','i','i','i','i','i','i','i','i','i','i','u','u','u','u','i',
+  'u','i','i','i','i','i','i','i','i','i','i','i','i','i','i','i',
+  'i','i','i','i','i','i','i','i','i','i','i','u','u','u','u','u',
   'u','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
   'u','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
   'u','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
@@ -566,7 +618,9 @@ const char *TinyRuleChecker::_nextToken(const char *expr, Token &t) {
     return NULL;
   }
 
-  while (isspace(*expr)) {
+  // while (isspace(*expr)) {
+  // while (*expr == ' ' || *expr == '\n' || *expr == '\r' || *expr == '\t') {
+  while (_TOKEN_LOOKUP_TABLE[*expr] == TK_SPACE) {
     expr++;
   }
 
@@ -575,7 +629,8 @@ const char *TinyRuleChecker::_nextToken(const char *expr, Token &t) {
   switch(t.type) {
     case TK_ID:
       expr++; // letter or underscore
-      while (isalnum(*expr) || *expr == '_') {
+      // while (isalnum(*expr) || *expr == '_') {
+      while(_TOKEN_LOOKUP_ID[*expr] == TK_ID) {
         expr++;
       }
       t.value = std::string_view(start_expr, expr - start_expr);
@@ -590,10 +645,9 @@ const char *TinyRuleChecker::_nextToken(const char *expr, Token &t) {
         start_expr = expr;
         while (*expr && *expr != quoteChar) {
           // skip escaped characters for now, will be processed later
-          if (*expr == '\\') {
-            expr++;
-            escapeCharFound = true;
-          }
+          escapeCharFound |= (*expr == '\\');
+          expr += (*expr == '\\');
+
           expr++;
         }
         t.value = std::string_view(start_expr, expr - start_expr);
@@ -612,14 +666,16 @@ const char *TinyRuleChecker::_nextToken(const char *expr, Token &t) {
     case TK_INT:
       {
         expr++; // digit or sign
-        while (isdigit(*expr)) {
+        //while(isdigit(*expr)) {
+        while (*expr >= '0' && *expr <= '9') {
           expr++;
         }
 
         if (*expr == '.') {
           t.type = TK_FLOAT;
           expr++;
-          while (isdigit(*expr)) {
+          //while (isdigit(*expr)) {
+          while (*expr >= '0' && *expr <= '9') {
             expr++;
           }
         }
@@ -676,6 +732,8 @@ const char *TinyRuleChecker::_nextToken(const char *expr, Token &t) {
       t.value = std::string_view{};
       return NULL;
 
+    case TK_SPACE:
+      // spaces should not appear here
     default:
       t.type = TK_UNKNOWN;
       t.value = std::string_view{expr, 1};
