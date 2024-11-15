@@ -1,3 +1,5 @@
 test
 a.out
 .vscode
+test-trace.*
+xray-log.*

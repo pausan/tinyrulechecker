@@ -8,7 +8,6 @@
 #include <string>
 #include <stdint.h>
 #include <map>
-#include <vector>
 
 class TinyRuleChecker {
   public:
@@ -26,7 +25,12 @@ class TinyRuleChecker {
       std::string strval;
     } VarValue;
 
-    typedef bool (*MethodOperator)(const VarValue &v1, const VarValue &v2, bool &result);
+    typedef struct {
+      bool        result;
+      std::string error;
+    } EvalResult;
+
+    typedef bool (*MethodOperator)(const VarValue &v1, const VarValue &v2, EvalResult &result);
 
     TinyRuleChecker(bool defaultMethods = true);
     ~TinyRuleChecker();
@@ -40,40 +44,49 @@ class TinyRuleChecker {
     void initMethods();
     void setMethod(const char *name, MethodOperator method);
 
-    bool eval(const char *expr, bool &result);
+    EvalResult eval(const char *expr);
+
   private:
     typedef enum {
       TK_UNKNOWN = 'u',
-      TK_ID = 'd',
-      TK_INT = 'i',
+      TK_ID = 'i',
+      TK_INT = 'n',
       TK_FLOAT = 'f',
-      TK_STRING = 's',
+      TK_RAW_STRING = 's',
+      TK_RAW_STRING_NO_ESCAPE = 'S', // no escape chars inside
+      TK_UNTERMINATED_STRING = 't',
       TK_AND = '&',
       TK_OR = '|',
       TK_NOT = '!',
       TK_DOT = '.',
       TK_LPAR = '(',
       TK_RPAR = ')',
+      TK_EOF = 'e'
     } TokenType;
 
+    static void __generateLookupTable();
+
     typedef struct {
-      int              offset; // instead of line, col, just the offset
       TokenType        type;
       std::string_view value;
     } Token;
 
-    typedef std::vector<Token> TokenList;
-    typedef TokenList::const_iterator TokenIt;
+    typedef struct {
+      const char *next;
+      Token       token;
+      bool        result;
+      std::string error;
+    } ParseState;
 
     std::map<std::string, VarValue, std::less<>> _variables;
     std::map<std::string, MethodOperator, std::less<>> _methods;
-    TokenList tokenize(const char *expr);
     const char *_nextToken(const char *expr, Token &t);
+    bool _peekToken(const char *expr, Token &t);
 
-    bool _parseStatement(TokenList &tokens, TokenIt &it, bool &result);
-    bool _parseExpr(TokenList &tokens, TokenIt &it, bool &result);
-    bool _parseValue(TokenList &tokens, TokenIt &it, VarValue &v);
-    bool _evalStatement(const VarValue &v1, const std::string_view &method, const VarValue &v2, bool &result);
+    bool _parseExpr(ParseState &ps);
+    bool _parseStatement(ParseState &ps);
+    bool _parseValue(ParseState &ps, VarValue &v);
+    bool _evalStatement(ParseState &ps, const VarValue &v1, const std::string_view &method, const VarValue &v2);
 };
 
 

@@ -63,8 +63,7 @@ int main () {
 }
 ```
 
-Compile with `g++ -o myexample myexample.cc tinyrulechecker.cc`
-
+Compile with `g++ -O3 -o myexample myexample.cc tinyrulechecker.cc`
 
 ## C++ Advanced Example
 
@@ -111,6 +110,16 @@ int main () {
   return 0;
 }
 ```
+## X-Ray Profiling
+
+Profile with:
+```sh
+$ clang++ --stdlib=libc++ -fxray-instrument -fxray-instruction-threshold=1 -O3  -ggdb3 -o test test.cc tinyrulechecker.cc
+$ XRAY_OPTIONS="patch_premain=true xray_mode=xray-basic verbosity=1" ./test
+$ llvm-xray convert --symbolize --instr_map=test --output-format=trace_event xray-log.test.* | gzip> test-trace.txt.gz"
+```
+
+View trace in https://ui.perfetto.dev/ or https://speedscope.app/
 
 ## Grammar
 
@@ -136,17 +145,20 @@ Strings can be enclosed in single or double quotes.
 ## Performance
 
 Benchmark performed on an Intel(R) Core(TM) i7-8565U CPU @ 1.80GHz (launched Q3
-2018) and compiled with g++ 13.2.0 with -O3 on a linux machine on the best of 3 runs.
+2018) and compiled with g++ 13.2.0 with -O3 on a linux machine on the **best** of 5 runs.
 
 **Expression**
 
 `myfloat.eq(1.9999999) || myint.eq(32)`
 
 **Results**
-- Less than 0.350 milliseconds to parse and evaluate 1000 times (0.334 ms)
-- 3.386 million evaluations per second (fully parsing and evaluating each time, no precompilation step)
+- 0.253ns per string evaluation
+- 253 microseconds to parse and evaluate a string 1000 times (0.253 ms)
+- 3.929 million evaluations per second (fully parsing and evaluating each time,
+  no precompilation step)
 
 ## License
 
-MIT Licensed. See LICENSE file.
+Copyright 2024 Pau Sanchez
 
+MIT Licensed. See LICENSE file.
