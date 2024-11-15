@@ -73,6 +73,11 @@ bool test_all () {
   ASSERT_EXPR("a.gte(100) && a.gt(99)", true);
   ASSERT_EXPR("(a.gte(100) && a.gt(99))", true);
   ASSERT_EXPR("(a.gte(100) && (a.gt(99) || a.gt(97)))", true);
+  ASSERT_EXPR("a.gte(100) && (a.gt(99) || a.gt(97))", true);
+  ASSERT_EXPR("(a.gte(100) && a.gt(99)) || a.gt(101)", true);
+  ASSERT_EXPR("(a.gte(100) && a.gt(199)) || a.gt(101)", false);
+  ASSERT_EXPR("(a.gte(101) && a.gt(199)) || a.gt(101)", false);
+  ASSERT_EXPR("(a.gte(101) && a.gt(199)) || a.gt(101) || a.gt(-12)", true);
 
   ASSERT_EXPR("b.eq(2.0)", true);
   ASSERT_EXPR("b.eq(1.999999)", false);
@@ -141,6 +146,29 @@ bool benchmark(int npasses, int niterations) {
       niterations,
       elapsed_seconds.count(),
       elapsed_seconds.count() / ((float)niterations / 1e9)
+    );
+  }
+
+  for (int n = 0; n < npasses; n++) {
+    // test performance
+    std::chrono::time_point<std::chrono::system_clock> start, end;
+    start = std::chrono::system_clock::now();
+    const char *expression = "(myfloat.eq(1.9999999) || myint.eq(32)) && mystr.contains('string')";
+    size_t nbytes = strlen(expression);
+    size_t nbytesProcessed = 0;
+    for (int i = 0; i < niterations; i++) {
+      ASSERT_EXPR(expression, false);
+      nbytesProcessed += nbytes;
+    }
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    printf(
+      "Pass %d: %.3f MB/sec  (%ld in %.3f seconds; 1 in %.3f nanoseconds)\n",
+      n+1,
+      ((float)nbytesProcessed / 1e6) / elapsed_seconds.count(),
+      nbytesProcessed,
+      elapsed_seconds.count(),
+      elapsed_seconds.count() / ((float)nbytesProcessed / 1e9)
     );
   }
 

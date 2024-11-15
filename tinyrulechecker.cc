@@ -276,11 +276,8 @@ bool TinyRuleChecker::_parseExpr(ParseState &ps) {
       ps.error = "expecting ')'";
       return false;
     }
-
-    return true;
   }
-
-  if (!_parseStatement(ps)) {
+  else if (!_parseStatement(ps)) {
     // preserve error by parseStatement
     return false;
   }
