@@ -117,6 +117,8 @@ class TinyRuleChecker {
     typedef struct {
       TokenType        type;
       std::string_view value;
+      int              intval;
+      float            floatval;
     } Token;
 
     typedef struct {

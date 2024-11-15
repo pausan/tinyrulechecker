@@ -3,6 +3,7 @@
 // MIT License
 // -----------------------------------------------------------------------------
 #include <stdio.h>
+#include <math.h>
 #include <string>
 #include <cstring>
 #include <stdint.h>
@@ -88,91 +89,109 @@ void TinyRuleChecker::setMethod(const char *name, TinyRuleChecker::MethodOperato
 // -----------------------------------------------------------------------------
 void TinyRuleChecker::initMethods() {
   setMethod("eq", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
-    if (v1.type == V_TYPE_INT) {
-      eval.result = v1.intval == v2.intval;
-    }
-    else if (v1.type == V_TYPE_FLOAT) {
-      eval.result = v1.floatval == v2.floatval;
-    }
-    else if (v1.type == V_TYPE_STRING) {
-      eval.result = v1.strval == v2.strval;
-    }
-    else {
-      eval.error = "unsupported operation 'eq' with type '" + std::string(1, v1.type) + "'";
-      return false;
+    switch (v1.type) {
+      case V_TYPE_INT:
+        eval.result = v1.intval == v2.intval;
+        break;
+      case V_TYPE_FLOAT:
+        eval.result = v1.floatval == v2.floatval;
+        break;
+      case V_TYPE_STRING:
+        eval.result = v1.strval == v2.strval;
+        break;
+      default:
+        eval.error = "unsupported operation 'eq' with type '" + std::string(1, v1.type) + "'";
+        return false;
     }
     return true;
   });
 
   setMethod("neq", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
-    if (v1.type == V_TYPE_INT) {
-      eval.result = v1.intval != v2.intval;
-    }
-    else if (v1.type == V_TYPE_FLOAT) {
-      eval.result = v1.floatval != v2.floatval;
-    }
-    else if (v1.type == V_TYPE_STRING) {
-      eval.result = v1.strval != v2.strval;
-    }
-    else {
-      eval.error = "unsupported operation 'neq' with type '" + std::string(1, v1.type) + "'";
-      return false;
+    switch (v1.type) {
+      case V_TYPE_INT:
+        eval.result = v1.intval != v2.intval;
+        break;
+      case V_TYPE_FLOAT:
+        eval.result = v1.floatval != v2.floatval;
+        break;
+      case V_TYPE_STRING:
+        eval.result = v1.strval != v2.strval;
+        break;
+      default:
+        eval.error = "unsupported operation 'neq' with type '" + std::string(1, v1.type) + "'";
+        return false;
     }
     return true;
   });
 
   setMethod("gt", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
-    if (v1.type == V_TYPE_INT) {
-      eval.result = v1.intval > v2.intval;
-    }
-    else if (v1.type == V_TYPE_FLOAT) {
-      eval.result = v1.floatval > v2.floatval;
-    }
-    else {
-      eval.error = "unsupported operation 'gt' with type '" + std::string(1, v1.type) + "'";
-      return false;
+    switch (v1.type) {
+      case V_TYPE_INT:
+        eval.result = v1.intval > v2.intval;
+        break;
+      case V_TYPE_FLOAT:
+        eval.result = v1.floatval > v2.floatval;
+        break;
+      case V_TYPE_STRING:
+        eval.result = v1.strval > v2.strval;
+        break;
+      default:
+        eval.error = "unsupported operation 'gt' with type '" + std::string(1, v1.type) + "'";
+        return false;
     }
     return true;
   });
 
   setMethod("gte", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
-    if (v1.type == V_TYPE_INT) {
-      eval.result = v1.intval >= v2.intval;
-    }
-    else if (v1.type == V_TYPE_FLOAT) {
-      eval.result = v1.floatval >= v2.floatval;
-    }
-    else {
-      eval.error = "unsupported operation 'gte' with type '" + std::string(1, v1.type) + "'";
-      return false;
+    switch(v1.type) {
+      case V_TYPE_INT:
+        eval.result = v1.intval >= v2.intval;
+        break;
+      case V_TYPE_FLOAT:
+        eval.result = v1.floatval >= v2.floatval;
+        break;
+      case V_TYPE_STRING:
+        eval.result = v1.strval >= v2.strval;
+        break;
+      default:
+        eval.error = "unsupported operation 'gte' with type '" + std::string(1, v1.type) + "'";
+        return false;
     }
     return true;
   });
 
   setMethod("lt", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
-    if (v1.type == V_TYPE_INT) {
-      eval.result = v1.intval < v2.intval;
-    }
-    else if (v1.type == V_TYPE_FLOAT) {
-      eval.result = v1.floatval < v2.floatval;
-    }
-    else {
-      eval.error = "unsupported operation 'lt' with type '" + std::string(1, v1.type) + "'";
-      return false;
+    switch (v1.type) {
+      case V_TYPE_INT:
+        eval.result = v1.intval < v2.intval;
+        break;
+      case V_TYPE_FLOAT:
+        eval.result = v1.floatval < v2.floatval;
+        break;
+      case  V_TYPE_STRING:
+        eval.result = v1.strval < v2.strval;
+        break;
+      default:
+        eval.error = "unsupported operation 'lt' with type '" + std::string(1, v1.type) + "'";
+        return false;
     }
     return true;
   });
 
   setMethod("lte", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
-    if (v1.type == V_TYPE_INT) {
-      eval.result = v1.intval <= v2.intval;
-    }
-    else if (v1.type == V_TYPE_FLOAT) {
-      eval.result = v1.floatval <= v2.floatval;
-    }
-    else {
-      eval.error = "unsupported operation 'lte' with type '" + std::string(1, v1.type) + "'";
-      return false;
+    switch (v1.type) {
+      case V_TYPE_INT:
+        eval.result = v1.intval <= v2.intval;
+        break;
+      case V_TYPE_FLOAT:
+        eval.result = v1.floatval <= v2.floatval;
+        break;
+      case  V_TYPE_STRING:
+        eval.result = v1.strval <= v2.strval;
+        break;
+      default:
+        eval.error = "unsupported operation 'lte' with type '" + std::string(1, v1.type) + "'";
+        return false;
     }
     return true;
   });
@@ -393,40 +412,14 @@ TinyRuleChecker::_parseValue(ParseState &ps, VarValue &v) {
   ps.next = _nextToken(ps.next, ps.token);
 
   if (ps.token.type == TK_INT) {
+    // we know is a valid int value
     v.type = V_TYPE_INT;
-    auto [p, ec] = std::from_chars(
-      ps.token.value.data(),
-      ps.token.value.data() + ps.token.value.size(),
-      v.intval
-    );
-    if (ec != std::errc()) {
-      ps.error = "invalid integer value";
-      return false;
-    }
+    v.intval = ps.token.intval;
     return true;
   }
   else if (ps.token.type == TK_FLOAT) {
     v.type = V_TYPE_FLOAT;
-#ifdef __clang__
-    const char *end = ps.token.value.data() + ps.token.value.size();
-    v.floatval = strtof(ps.token.value.data(), (char**)&end);
-    if (!v.floatval && end != ps.token.value.data() + ps.token.value.size()) {
-      // TODO: check errno for a more accurate error
-      ps.error = "invalid float value";
-      return false;
-    }
-#else
-    auto [p, ec] = std::from_chars(
-      ps.token.value.data(),
-      ps.token.value.data() + ps.token.value.size(),
-      v.floatval
-    );
-    if (ec != std::errc()) {
-      ps.error = "invalid float value";
-      return false;
-    }
-#endif
-
+    v.floatval = ps.token.floatval;
     return true;
   }
   else if (ps.token.type == TK_RAW_STRING || ps.token.type == TK_RAW_STRING_NO_ESCAPE) {
@@ -665,19 +658,36 @@ const char *TinyRuleChecker::_nextToken(const char *expr, Token &t) {
 
     case TK_INT:
       {
-        expr++; // digit or sign
+        bool negative = *expr == '-';
+        t.intval = (*expr >= '0' && *expr <= '9') ?  *expr - '0' : 0;
+
+        // skip first digit or sign
+        expr++;
+
         //while(isdigit(*expr)) {
         while (*expr >= '0' && *expr <= '9') {
+          t.intval = t.intval * 10 + (*expr - '0');
           expr++;
         }
 
+        if (negative) {
+          t.intval = -t.intval;
+        }
+
         if (*expr == '.') {
+          float fraction = 0;
+          float divisor = 1.0;
           t.type = TK_FLOAT;
           expr++;
           //while (isdigit(*expr)) {
           while (*expr >= '0' && *expr <= '9') {
+            fraction = fraction * 10 + (*expr - '0');
+            divisor *= 10;
             expr++;
           }
+
+          t.floatval  = (float)t.intval;
+          t.floatval += fraction / divisor;
         }
         t.value = std::string_view(start_expr, expr - start_expr);
       }

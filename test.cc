@@ -36,6 +36,7 @@ bool test_all () {
 
   ASSERT_EXPR("a.eq(1)", true);
   ASSERT_EXPR("a.eq(2)", false);
+  ASSERT_EXPR("a.eq(-32)", false);
   ASSERT_EXPR("a.eq(1234551234)", false);
 
   e.setVarInt("a", 100);
@@ -44,8 +45,10 @@ bool test_all () {
   ASSERT_EXPR("a.eq(99)", false);
   ASSERT_EXPR("a.neq(100)", false);
   ASSERT_EXPR("a.neq(101)", true);
+  ASSERT_EXPR("a.neq(-1)", true);
   ASSERT_EXPR("a.neq(99)", true);
   ASSERT_EXPR("a.lt(100)", false);
+  ASSERT_EXPR("a.lt(-100)", false);
   ASSERT_EXPR("a.lt(101)", true);
   ASSERT_EXPR("a.lt(99)", false);
   ASSERT_EXPR("a.lte(100)", true);
@@ -54,6 +57,7 @@ bool test_all () {
   ASSERT_EXPR("a.gt(100)", false);
   ASSERT_EXPR("a.gt(101)", false);
   ASSERT_EXPR("a.gt(99)", true);
+  ASSERT_EXPR("a.gt(-100)", true);
   ASSERT_EXPR("a.gte(100)", true);
   ASSERT_EXPR("a.gte(101)", false);
   ASSERT_EXPR("a.gte(99)", true);
@@ -71,7 +75,9 @@ bool test_all () {
   ASSERT_EXPR("(a.gte(100) && (a.gt(99) || a.gt(97)))", true);
 
   ASSERT_EXPR("b.eq(2.0)", true);
+  ASSERT_EXPR("b.eq(1.999999)", false);
   ASSERT_EXPR("b.eq(1.9999999)", false);
+  ASSERT_EXPR("b.eq(1.12345)", false);
   ASSERT_EXPR("c.eq(\"my string\")", true);
   ASSERT_EXPR("c.contains(\"string\")", true);
   ASSERT_EXPR("c.contains(\"stringo\")", false);
