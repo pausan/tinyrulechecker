@@ -17,7 +17,9 @@ The expressions are straighforward, as easy as:
 varname '.' method '(' value ')'
 ```
 
-Where `varname` is an id defined in the code and `value` is a string, int or float.
+Where `varname` is an id defined in the code and `value` is a string, int, float
+or an array of any of such items.
+
 There is a set of predefined methods that you can totally override/extend/get rid of.
 
 Operations return a boolean value and you can chain them using `and` (`&&`) and `or` (`||`) operators:
