@@ -20,7 +20,11 @@
 
 #define ASSERT_ERROR_EXPR(expr, expected_error) { \
   TinyRuleChecker::EvalResult eres = e.eval(expr); \
-  if (eres.error.empty()) return false; \
+  if (eres.error.empty()) { \
+    printf ("Error evaluating: %s\n - Expected Error: %s\n - Got NO ERROR\n", expr, expected_error); \
+    printf (">> %s:%d\n", __FILE__, __LINE__); \
+    return false; \
+  } \
   if (eres.error != expected_error) { \
     printf ("Error evaluating: %s\n - Expected Error: %s\n - Got Error     : %s\n", expr, expected_error, eres.error.c_str()); \
     printf (">> %s:%d\n", __FILE__, __LINE__); \
@@ -60,8 +64,11 @@ bool test_all () {
   ASSERT_EXPR("a.gt(-100)", true);
   ASSERT_EXPR("a.gte(100)", true);
   ASSERT_EXPR("a.gte(101)", false);
-  ASSERT_EXPR("a.gte(99)", true);
+  ASSERT_EXPR("a.eq(100)", true);
   ASSERT_EXPR("!a.gte(99)", false);
+  ASSERT_EXPR("a.eq(a)", true);
+  ASSERT_EXPR("!a.neq(a)", true);
+  ASSERT_EXPR("a.in([100, 'asdf', 1.2])", true);
 
   // test spaces
   ASSERT_EXPR("a . eq (   100  )", true);
@@ -104,9 +111,9 @@ bool test_all () {
   ASSERT_ERROR_EXPR("a.", "expecting identifier");
   ASSERT_ERROR_EXPR("a.a", "expecting '('");
   ASSERT_ERROR_EXPR("j.k", "expecting '('");
-  ASSERT_ERROR_EXPR("j.k(", "expecting value");
-  ASSERT_ERROR_EXPR("j.k()", "expecting value");
-  ASSERT_ERROR_EXPR("a.k(.3)", "expecting value");
+  ASSERT_ERROR_EXPR("j.k(", "expecting value, got EOF");
+  ASSERT_ERROR_EXPR("j.k()", "expecting value, got ')'");
+  ASSERT_ERROR_EXPR("a.k(.3)", "expecting value, got '.'");
   ASSERT_ERROR_EXPR("j.k(2.)", "variable 'j' not found");
   ASSERT_ERROR_EXPR("Jey.k(2.)", "variable 'Jey' not found");
   ASSERT_ERROR_EXPR("j.k(2.7", "expecting ')'");
@@ -198,6 +205,8 @@ int main() {
   bool testPassed = test_all();
   printf (testPassed ? "Tests PASS!\n" : "One or more tests FAILED!\n");
 
+  if (!testPassed) return -1;
+
   int niterations = 10 * 1000 * 1000;
 
   // override iterations from env variable
@@ -208,5 +217,5 @@ int main() {
 
   printf ("Running benchmark (n=%d)...\n", niterations);
   benchmark(3, niterations);
-  return testPassed ? 0 : -1;
+  return 0;
 }

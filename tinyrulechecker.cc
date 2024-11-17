@@ -88,7 +88,15 @@ void TinyRuleChecker::setMethod(const char *name, TinyRuleChecker::MethodOperato
 // Initialize all standard methods
 // -----------------------------------------------------------------------------
 void TinyRuleChecker::initMethods() {
+#define ENSURE_SAME_TYPE(v1, v2) \
+    if (v1.type != v2.type) { \
+      eval.error = "type mismatch: type " + std::string(1, v1.type) + " vs " + std::string(1, v2.type); \
+      return false; \
+    } \
+
   setMethod("eq", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
+    ENSURE_SAME_TYPE(v1, v2);
+
     switch (v1.type) {
       case V_TYPE_INT:
         eval.result = v1.intval == v2.intval;
@@ -107,6 +115,8 @@ void TinyRuleChecker::initMethods() {
   });
 
   setMethod("neq", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
+    ENSURE_SAME_TYPE(v1, v2);
+
     switch (v1.type) {
       case V_TYPE_INT:
         eval.result = v1.intval != v2.intval;
@@ -125,6 +135,8 @@ void TinyRuleChecker::initMethods() {
   });
 
   setMethod("gt", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
+    ENSURE_SAME_TYPE(v1, v2);
+
     switch (v1.type) {
       case V_TYPE_INT:
         eval.result = v1.intval > v2.intval;
@@ -143,6 +155,8 @@ void TinyRuleChecker::initMethods() {
   });
 
   setMethod("gte", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
+    ENSURE_SAME_TYPE(v1, v2);
+
     switch(v1.type) {
       case V_TYPE_INT:
         eval.result = v1.intval >= v2.intval;
@@ -161,6 +175,8 @@ void TinyRuleChecker::initMethods() {
   });
 
   setMethod("lt", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
+    ENSURE_SAME_TYPE(v1, v2);
+
     switch (v1.type) {
       case V_TYPE_INT:
         eval.result = v1.intval < v2.intval;
@@ -179,6 +195,8 @@ void TinyRuleChecker::initMethods() {
   });
 
   setMethod("lte", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
+    ENSURE_SAME_TYPE(v1, v2);
+
     switch (v1.type) {
       case V_TYPE_INT:
         eval.result = v1.intval <= v2.intval;
@@ -210,6 +228,35 @@ void TinyRuleChecker::initMethods() {
   setMethod("in", [](const VarValue &v1, const VarValue &v2, EvalResult &eval) {
     if (v2.type == V_TYPE_STRING) {
       eval.result = v2.strval.find(v1.strval) != std::string::npos;
+    }
+    else if (v2.type == V_TYPE_ARRAY) {
+      for (const VarValue &v : v2.array) {
+        if (v1.type == v.type) {
+          switch (v1.type) {
+            case V_TYPE_INT:
+              if (v1.intval == v.intval) {
+                eval.result = true;
+                return true;
+              }
+              break;
+            case V_TYPE_FLOAT:
+              if (v1.floatval == v.floatval) {
+                eval.result = true;
+                return true;
+              }
+              break;
+            case V_TYPE_STRING:
+              if (v1.strval == v.strval) {
+                eval.result = true;
+                return true;
+              }
+              break;
+            default:
+              break;
+          }
+        }
+      }
+      eval.result = false;
     }
     else {
       eval.error = "unsupported operation 'in' with type '" + std::string(1, v2.type) + "'";
@@ -408,56 +455,108 @@ bool
 TinyRuleChecker::_parseValue(ParseState &ps, VarValue &v) {
   ps.next = _nextToken(ps.next, ps.token);
 
-  if (ps.token.type == TK_INT) {
-    // we know is a valid int value
-    v.type = V_TYPE_INT;
-    v.intval = ps.token.intval;
-    return true;
-  }
-  else if (ps.token.type == TK_FLOAT) {
-    v.type = V_TYPE_FLOAT;
-    v.floatval = ps.token.floatval;
-    return true;
-  }
-  else if (ps.token.type == TK_RAW_STRING || ps.token.type == TK_RAW_STRING_NO_ESCAPE) {
-    v.type = V_TYPE_STRING;
-    v.strval = ps.token.value;
-
-    // no escape sequences, thus, we are done!
-    if (ps.token.type == TK_RAW_STRING_NO_ESCAPE)
+  switch (ps.token.type) {
+    case TK_INT:
+      // we know is a valid int value
+      v.type = V_TYPE_INT;
+      v.intval = ps.token.intval;
       return true;
 
-    // TK_RAW_STRING requires unescaping the string
-    size_t pos = 0;
-    for (size_t i = 0; i < v.strval.size(); i++) {
-      if (v.strval[i] == '\\') {
-        if (i + 1 < v.strval.size()) {
-          switch (v.strval[i+1]) {
-            case 'n': v.strval[i] = '\n'; break;
-            case 'r': v.strval[i] = '\r'; break;
-            case 't': v.strval[i] = '\t'; break;
-            case '0': v.strval[i] = '\0'; break;
-            case '\\': v.strval[i] = '\\'; break;
-            case '\'': v.strval[i] = '\''; break;
-            case '"': v.strval[i] = '"'; break;
-            default: break;
+    case TK_FLOAT:
+      v.type = V_TYPE_FLOAT;
+      v.floatval = ps.token.floatval;
+      return true;
+
+    case TK_RAW_STRING:
+    case TK_RAW_STRING_NO_ESCAPE:
+      {
+        v.type = V_TYPE_STRING;
+        v.strval = ps.token.value;
+
+        // no escape sequences, thus, we are done!
+        if (ps.token.type == TK_RAW_STRING_NO_ESCAPE)
+          return true;
+
+        // TK_RAW_STRING requires unescaping the string
+        size_t pos = 0;
+        for (size_t i = 0; i < v.strval.size(); i++) {
+          if (v.strval[i] == '\\') {
+            if (i + 1 < v.strval.size()) {
+              switch (v.strval[i+1]) {
+                case 'n': v.strval[i] = '\n'; break;
+                case 'r': v.strval[i] = '\r'; break;
+                case 't': v.strval[i] = '\t'; break;
+                case '0': v.strval[i] = '\0'; break;
+                case '\\': v.strval[i] = '\\'; break;
+                case '\'': v.strval[i] = '\''; break;
+                case '"': v.strval[i] = '"'; break;
+                default: break;
+              }
+              v.strval[pos++] = v.strval[i];
+            }
           }
-          v.strval[pos++] = v.strval[i];
+          else {
+            v.strval[pos++] = v.strval[i];
+          }
+        }
+        v.strval.resize(pos);
+      }
+      return true;
+
+    case TK_UNTERMINATED_STRING:
+      ps.error = "unterminated string";
+      return false;
+
+    case TK_ID:
+      {
+        const VarValue *pVar = _variables.get(ps.token.value);
+        if (pVar == NULL) {
+          ps.error = "variable '" + std::string(ps.token.value) + "' not found";
+          return false;
+        }
+
+        v = *pVar;
+      }
+      return true;
+
+    case TK_LBRACE:
+      {
+        v.type = V_TYPE_ARRAY;
+        v.array.clear();
+
+        _peekToken(ps.next, ps.token);
+        while (ps.token.type != TK_RBRACE) {
+          VarValue vtmp;
+          if (!_parseValue(ps, vtmp)) {
+            // preserve error by parseValue
+            return false;
+          }
+
+          v.array.push_back(vtmp);
+
+          // then a ',' or end of array
+          ps.next = _nextToken(ps.next, ps.token);
+          if (ps.token.type == TK_RBRACE) {
+            break;
+          }
+          else if (ps.token.type != TK_COMMA) {
+            ps.error = "expecting ','";
+            return false;
+          }
+        }
+
+        // end of array found, we are done!
+        if (ps.token.type != TK_RBRACE) {
+          ps.error = "expecting ']'";
+          return false;
         }
       }
-      else {
-        v.strval[pos++] = v.strval[i];
-      }
-    }
-    v.strval.resize(pos);
-    return true;
-  }
-  else if (ps.token.type == TK_UNTERMINATED_STRING) {
-    ps.error = "unterminated string";
-    return false;
+      return true;
+
+    default:
+      ps.error = "expecting value, got " + _stringifyToken(ps.token);
   }
 
-  ps.error = "expecting value";
   return false;
 }
 
@@ -470,10 +569,11 @@ bool TinyRuleChecker::_evalStatement(
   const std::string_view &method,
   const VarValue &v2
 ) {
-  if (v1.type != v2.type) {
-    ps.error = "type mismatch: type " + std::string(1, v1.type) + " vs " + std::string(1, v2.type);
-    return false;
-  }
+  // NOTE: type compatibility is left to the method implementation
+  // if (v1.type != v2.type) {
+  //   ps.error = "type mismatch: type " + std::string(1, v1.type) + " vs " + std::string(1, v2.type);
+  //   return false;
+  // }
 
   const MethodOperator *pMethod = _methods.get(method);
   if (pMethod == NULL) {
@@ -518,10 +618,13 @@ void TinyRuleChecker::__generateLookupTable() {
     else if (isspace(i)) printf("'%c'", TK_UNKNOWN);
     else if (i == '(') printf("'%c'", TK_LPAR);
     else if (i == ')') printf("'%c'", TK_RPAR);
+    else if (i == '[') printf("'%c'", TK_LBRACE);
+    else if (i == ']') printf("'%c'", TK_RBRACE);
     else if (i == '&') printf("'%c'", TK_AND);
     else if (i == '|') printf("'%c'", TK_OR);
     else if (i == '!') printf("'%c'", TK_NOT);
     else if (i == '.') printf("'%c'", TK_DOT);
+    else if (i == ',') printf("'%c'", TK_COMMA);
     else printf("'%c'", TK_UNKNOWN);
 
     if (i < 255) printf(",");
@@ -551,10 +654,10 @@ void TinyRuleChecker::__generateLookupTable() {
 static const char _TOKEN_LOOKUP_TABLE[256] = {
   'e','u','u','u','u','u','u','u','u',' ',' ',' ',' ',' ','u','u',
   'u','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
-  ' ','!','s','u','u','u','&','s','(',')','u','n','u','n','.','u',
+  ' ','!','s','u','u','u','&','s','(',')','u','n',',','n','.','u',
   'n','n','n','n','n','n','n','n','n','n','u','u','u','u','u','u',
   'u','i','i','i','i','i','i','i','i','i','i','i','i','i','i','i',
-  'i','i','i','i','i','i','i','i','i','i','i','u','u','u','u','i',
+  'i','i','i','i','i','i','i','i','i','i','i','[','u',']','u','i',
   'u','i','i','i','i','i','i','i','i','i','i','i','i','i','i','i',
   'i','i','i','i','i','i','i','i','i','i','i','u','|','u','u','u',
   'u','u','u','u','u','u','u','u','u','u','u','u','u','u','u','u',
@@ -700,6 +803,16 @@ const char *TinyRuleChecker::_nextToken(const char *expr, Token &t) {
       expr++;
       break;
 
+    case TK_LBRACE:
+      t.value = std::string_view{expr, 1};
+      expr++;
+      break;
+
+    case TK_RBRACE:
+      t.value = std::string_view{expr, 1};
+      expr++;
+      break;
+
     case TK_AND:
       if (*(expr+1) == '&') {
         t.value = std::string_view{expr, 2};
@@ -734,6 +847,11 @@ const char *TinyRuleChecker::_nextToken(const char *expr, Token &t) {
       expr++;
       break;
 
+    case TK_COMMA:
+      t.value = std::string_view{expr, 1};
+      expr++;
+      break;
+
     case TK_EOF:
       // can happen if expression ends with spaces
       t.value = std::string_view{};
@@ -749,4 +867,22 @@ const char *TinyRuleChecker::_nextToken(const char *expr, Token &t) {
   }
 
   return expr;
+}
+
+// -----------------------------------------------------------------------------
+// _stringifyToken
+// -----------------------------------------------------------------------------
+std::string TinyRuleChecker::_stringifyToken(const Token &t) {
+  switch (t.type) {
+    case TK_INT: return std::to_string(t.intval);
+    case TK_FLOAT: return std::to_string(t.floatval);
+    case TK_RAW_STRING:
+    case TK_RAW_STRING_NO_ESCAPE:
+      return "string '" + std::string(t.value) + "'";
+    case TK_UNTERMINATED_STRING:
+      return "unterminated string (" + std::string(t.value) + ")";
+    case TK_EOF: return "EOF";
+    default:
+      return "'" + std::string(1, t.type) + "'";
+  }
 }

@@ -140,7 +140,9 @@ expr      -> '(' expr ')'
 statement -> id '.' id '(' value ')'
           -> '!' statement
 
-value -> int | float | string
+value -> id | int | float | string | array
+
+array -> '[' value (',' value)* ']'
 
 boolop -> '&&' | '||'
 ```

@@ -58,14 +58,16 @@ class TinyRuleChecker {
     typedef enum {
       V_TYPE_INT = 'i',
       V_TYPE_FLOAT = 'f',
-      V_TYPE_STRING = 's'
+      V_TYPE_STRING = 's',
+      V_TYPE_ARRAY = 'a'
     } VarType;
 
-    typedef struct {
-      VarType     type;
-      int32_t     intval;
-      float       floatval;
-      std::string strval;
+    typedef struct _VarValue {
+      VarType                type;
+      int32_t                intval;
+      float                  floatval;
+      std::string            strval;
+      std::vector<_VarValue> array;
     } VarValue;
 
     typedef struct {
@@ -106,19 +108,24 @@ class TinyRuleChecker {
       TK_OR = '|',
       TK_NOT = '!',
       TK_DOT = '.',
+      TK_COMMA = ',',
       TK_LPAR = '(',
       TK_RPAR = ')',
+      TK_LBRACE = '[',
+      TK_RBRACE = ']',
       TK_SPACE = ' ',
       TK_EOF = 'e'
     } TokenType;
 
     public: static void __generateLookupTable();
 
-    typedef struct {
-      TokenType        type;
-      std::string_view value;
-      int              intval;
-      float            floatval;
+    typedef struct Token {
+      TokenType         type;
+      std::string_view  value;
+      union {
+        int32_t         intval;
+        float           floatval;
+      };
     } Token;
 
     typedef struct {
@@ -131,6 +138,7 @@ class TinyRuleChecker {
     FastStringLookup<VarValue> _variables;
     FastStringLookup<MethodOperator> _methods;
 
+    std::string _stringifyToken(const Token &t);
     const char *_nextToken(const char *expr, Token &t);
     bool _peekToken(const char *expr, Token &t);
 
