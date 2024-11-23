@@ -196,7 +196,7 @@ void FastStringLookup<T>::set(const std::string &key, T value) {
 // FastStringLookup<T>::get
 // -----------------------------------------------------------------------------
 template<typename T>
-const T *FastStringLookup<T>::get(const std::string_view &key) const {
+inline const T *FastStringLookup<T>::get(const std::string_view &key) const {
   uint32_t qkey = _fnvHash32v((const uint8_t*)key.data(), key.size()) % _lookup.size();
   uint32_t index = _lookup[qkey];
   if (index == 0) {
