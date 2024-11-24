@@ -162,10 +162,10 @@ Benchmark performed on an Intel(R) Core(TM) i7-8565U CPU @ 1.80GHz (launched Q3
 
 **Results**
 
-- **244.8MB/s of data processed per second**
-- **6.316 million evaluations per second**
-- **1000 evaluations in 0.158 ms**
-- **1 evaluation in 158.32 ns**
+- **287.2MB/s of data processed per second**
+- **7.02 million evaluations per second**
+- **1000 evaluations in 0.142 ms**
+- **1 evaluation in 142.44 ns**
 
 Please note that the full string is parsed and evaluated fully every time,
 no cache, no pre-compilation step.

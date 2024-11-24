@@ -302,14 +302,15 @@ TinyRuleChecker::eval(const char *expr) {
 //           -> statement boolop expr
 // -----------------------------------------------------------------------------
 bool TinyRuleChecker::_parseExpr(ParseState &ps) {
-  if (!_peekToken(ps.next, ps.token)) {
+  const char *peekNext = _nextToken(ps.next, ps.token);
+  if (peekNext == NULL) {
     ps.error = "expecting expression";
     return false;
   }
 
   if (ps.token.type == TK_LPAR) {
     // consume LPAR
-    ps.next = _nextToken(ps.next, ps.token);
+    ps.next = peekNext;
 
     // then expression
     if (!_parseExpr(ps)) {
@@ -332,12 +333,12 @@ bool TinyRuleChecker::_parseExpr(ParseState &ps) {
   // let's see what's ahead (we might need to process some extra things or
   // we might just want to return to higher level, e.g still ")..." to be
   // processed)
-  _peekToken(ps.next, ps.token);
+  peekNext = _nextToken(ps.next, ps.token);
   switch(ps.token.type) {
     case TK_AND:
       {
         // consume AND
-        ps.next = _nextToken(ps.next, ps.token);
+        ps.next = peekNext;
 
         bool result = ps.result;
         if (!_parseExpr(ps))
@@ -351,7 +352,7 @@ bool TinyRuleChecker::_parseExpr(ParseState &ps) {
     case TK_OR:
       {
         // consume OR
-        ps.next = _nextToken(ps.next, ps.token);
+        ps.next = peekNext;
 
         bool result = ps.result;
         if (!_parseExpr(ps))
@@ -705,16 +706,16 @@ static const char _TOKEN_LOOKUP_ID[256] = {
 const char *TinyRuleChecker::_nextToken(const char *expr, Token &t) {
   t.type = TK_UNKNOWN;
 
-  if (expr == NULL || *expr == '\0') {
-    t.type = TK_EOF;
-    t.value = std::string_view{};
-    return NULL;
-  }
-
   // while (isspace(*expr)) {
   // while (*expr == ' ' || *expr == '\n' || *expr == '\r' || *expr == '\t') {
   while (_TOKEN_LOOKUP_TABLE[*expr] == TK_SPACE) {
     expr++;
+  }
+
+  if (expr == NULL || *expr == '\0') {
+    t.type = TK_EOF;
+    t.value = std::string_view{};
+    return NULL;
   }
 
   const char *start_expr = expr;
